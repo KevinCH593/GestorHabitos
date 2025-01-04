@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Detalles del Hábito -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Detalles del Hábito</h2>
+        </div>
+        <div class="card-body">
+            <h3 class="card-title">{{ habito.nombre }}</h3>
+            <p class="card-text"><strong>Descripción:</strong> {{ habito.descripcion }}</p>
+            <p><strong>Meta Diaria:</strong> {{ habito.meta_tiempo }} min</p>
+            <p><strong>Fecha de Creación:</strong> {{ habito.fecha_creacion|date:"d/m/Y" }}</p>
+            <p><strong>Estado:</strong> 
+                {% if habito.estado %}
+                <span class="badge bg-success">Activo</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactivo</span>
+                {% endif %}
+            </p>
+            <p><strong>Prioridad:</strong> 
+                <span class="badge 
+                    {% if habito.prioridad == 'Alta' %}bg-danger
+                    {% elif habito.prioridad == 'Media' %}bg-warning
+                    {% else %}bg-success{% endif %}">
+                    {{ habito.prioridad }}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Registros de Inicio -->
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h2 class="mb-0">Registros de Inicio</h2>
+        </div>
+        <div class="card-body">
+            <!-- detalle_habito.html -->
+            {% if registros %}
+            <div class="table-responsive">
+                <table id="tabla-registros" class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Fecha de Inicio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registro in registros %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ registro.fecha_inicio|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>            
+            {% else %}
+            <p class="text-center">No hay registros de inicio para este hábito.</p>
+            {% endif %}
+
+        </div>
+    </div>
+    
+
+    <!-- Botón Volver -->
+    <div class="mt-4">
+        <a href="{% url 'inicio' %}" class="btn btn-secondary">Volver</a>
+    </div>
+</div>
+{% endblock %}

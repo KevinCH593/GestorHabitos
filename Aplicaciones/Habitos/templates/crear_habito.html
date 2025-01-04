@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Crear Nuevo Hábito</h1>
+    <form id="nuevo_habito" method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre del Hábito</label>
+            <input type="text" name="nombre" id="nombre" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción</label>
+            <textarea name="descripcion" id="descripcion" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="meta_tiempo" class="form-label">Meta Diaria (Horas y Minutos)</label>
+            <div class="input-group mb-2">
+                <input type="number" name="meta_horas" id="meta_horas" class="form-control" placeholder="Horas" min="0" value="0">
+                <span class="input-group-text">:</span>
+                <input type="number" name="meta_minutos" id="meta_minutos" class="form-control" placeholder="Minutos" min="0" max="59">
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-primary" onclick="setHours(1)">+1 Hora</button>
+                <button type="button" class="btn btn-outline-primary" onclick="setHours(2)">+2 Horas</button>
+                <button type="button" class="btn btn-outline-primary" onclick="setHours(3)">+3 Horas</button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <button type="button" class="btn btn-outline-secondary" onclick="setMinutes(5)">+5 Min</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="setMinutes(10)">+10 Min</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="setMinutes(15)">+15 Min</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="setMinutes(30)">+30 Min</button>
+            </div>
+            <small class="form-text text-muted">Por ejemplo, 2 horas y 30 minutos.</small>
+        </div>
+        <div class="mb-3">
+            <label for="prioridad" class="form-label">Prioridad</label>
+            <select name="prioridad" id="prioridad" class="form-select" required>
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+            </select>
+        </div>        
+        <div class="mt-4">
+            <button type="submit" class="btn btn-success">Guardar</button>
+            <a href="{% url 'inicio' %}" class="btn btn-danger">Cancelar</a>
+        </div>
+    </form>
+    <!-- ---------------------------------------------------------- -->
+    <!-- Script Para validar el formulario -->
+    <!-- ---------------------------------------------------------- -->
+    <script>
+        $(document).ready(function() {
+            $("#nuevo_habito").validate({
+                rules: {
+                    nombre: {
+                        required: true,
+                        minlength: 3,
+                        letras: true,
+                    },
+                    descripcion: {
+                        required: true,
+                        minlength: 5
+                    },
+                    meta_horas: {
+                        required: true,
+                        numeros: true,
+                        min: 0
+                    },
+                    meta_minutos: {
+                        required: true,
+                        numeros: true,
+                        min: 1,
+                        max: 59
+                    },
+                    prioridad: {
+                        required: true
+                    }
+                },
+                messages: {
+                    nombre: {
+                        required: "Por favor, ingresa el nombre del hábito",
+                        minlength: "El nombre debe tener al menos 3 caracteres",
+                        letras: "El nombre solo puede contener letras"
+                    },
+                    descripcion: {
+                        required: "Por favor, ingresa una descripción",
+                        minlength: "La descripción debe tener al menos 5 caracteres"
+                    },
+                    meta_horas: {
+                        required: "Por favor, ingresa las horas",
+                        numeros: "Solo se permiten números",
+                        min: "Las horas no pueden ser negativas"
+                    },
+                    meta_minutos: {
+                        required: "Por favor, ingresa los minutos",
+                        numeros: "Solo se permiten números",
+                        min: "Los minutos no pueden ser menor que 1 min",
+                        max: "Los minutos no pueden exceder los 59"
+                    },
+                    prioridad: {
+                        required: "Por favor, selecciona la prioridad"
+                    }
+                },
+                errorClass: 'error',
+                validClass: 'success',
+                highlight: function(element, errorClass, validClass) {
+                    $(element).removeClass(validClass).addClass(errorClass);
+                },
+                unhighlight: function(element, errorClass, validClass) {
+                    $(element).removeClass(errorClass).addClass(validClass);
+                }
+            });
+        });
+    </script>
+</div>
+{% endblock %}

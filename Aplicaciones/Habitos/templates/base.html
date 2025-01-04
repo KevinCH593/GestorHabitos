@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Hábitos</title>
+    {% load static %}
+    <!-- Importando jquery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <!-- Importando Bootstrap -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <!-- Importando IziToast -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/js/iziToast.min.js" integrity="sha512-Zq9o+E00xhhR/7vJ49mxFNJ0KQw1E1TMWkPTxrWcnpfEFDEXgUiwJHIKit93EW/XxE31HSI5GEOW06G6BF1AtA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/css/iziToast.css" integrity="sha512-DIW4FkYTOxjCqRt7oS9BFO+nVOwDL4bzukDyDtMO7crjUZhwpyrWBFroq+IqRe6VnJkTpRAS6nhDvf0w+wHmxg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Importando jquery Validate -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'inicio' %}">Gestión de Hábitos</a>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        {% block content %}
+        {% endblock %}
+    </div>
+    <!-- Validacion para mensajes informativos con IziToast -->
+    {% if messages %}
+        {% for mensajeConfirmacion in messages %}
+            <script>
+                if("{{mensajeConfirmacion.tags}}"== "success")
+                    {
+                    //alert("{{ mensajeConfirmacion }}");
+                    iziToast.success({
+                        title: 'CONFIRMACION',
+                        message: '{{ mensajeConfirmacion }}',
+                        position: 'topRight',
+                        color: '#4caf50'
+                    })
+                        
+                    }
+            </script>
+        {% endfor %}
+    {% endif %}
+    <!-- ---------------------------------------------------------- -->
+    <!-- Estilo de los inputs validados Jquery Validate -->
+    <!-- ---------------------------------------------------------- -->
+    <style>
+        label.error {
+            color: red;
+            font-weight: bold;
+        }
+        input.error {
+            border: 1px solid red;
+        }
+        input.success {
+            border: 1px solid green;
+        }
+        textarea.error {
+            border: 1px solid red;
+        }
+        textarea.success {
+            border: 1px solid green;
+        }
+        select.error {	
+            border: 1px solid red;
+        }
+        select.success {
+            border: 1px solid green;
+        }
+    </style>
+
+    <!-- ---------------------------------------------------------- -->
+    <!-- Script Para el boton iniciar -->
+    <!-- ---------------------------------------------------------- -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const startButtons = document.querySelectorAll('.start-btn');
+    
+            // Recuperar el estado desde Local Storage
+            const progressData = JSON.parse(localStorage.getItem('habitProgress')) || {};
+    
+            startButtons.forEach(button => {
+                const habitoId = button.getAttribute('data-id');
+                const metaTiempo = parseInt(button.getAttribute('data-meta-tiempo'), 10); // Meta en minutos
+                const progressBarContainer = document.getElementById(`progress-${habitoId}`);
+                const progressBar = progressBarContainer.querySelector('.progress-bar');
+    
+                // Restaurar progreso si existe
+                if (progressData[habitoId]) {
+                    restoreProgress(habitoId, metaTiempo, progressBar, progressBarContainer);
+                }
+    
+                button.addEventListener('click', function () {
+                    if (!progressData[habitoId]) {
+                        // Inicializar progreso
+                        progressData[habitoId] = {
+                            startTime: Date.now(),
+                            metaTiempoMs: metaTiempo * 60 * 1000, // Convertir minutos a milisegundos
+                        };
+                        localStorage.setItem('habitProgress', JSON.stringify(progressData));
+    
+                        // Crear registro en el servidor
+                        crearRegistroEnServidor(habitoId);
+                    }
+    
+                    // Mostrar la barra de progreso
+                    progressBarContainer.classList.remove('d-none');
+    
+                    // Iniciar progreso
+                    updateProgressBar(habitoId, progressBar, progressBarContainer);
+                });
+            });
+    
+            function restoreProgress(habitoId, metaTiempo, progressBar, progressBarContainer) {
+                const { startTime, metaTiempoMs } = progressData[habitoId];
+                const elapsedTime = Date.now() - startTime;
+                const currentProgress = Math.min((elapsedTime / metaTiempoMs) * 100, 100);
+    
+                // Actualizar barra de progreso visualmente
+                setProgressBar(progressBar, progressBarContainer, currentProgress);
+    
+                // Continuar si no está completo
+                if (currentProgress < 100) {
+                    updateProgressBar(habitoId, progressBar, progressBarContainer);
+                }
+            }
+    
+            function updateProgressBar(habitoId, progressBar, progressBarContainer) {
+                const { startTime, metaTiempoMs } = progressData[habitoId];
+                const elapsedTime = Date.now() - startTime;
+                const currentProgress = Math.min((elapsedTime / metaTiempoMs) * 100, 100);
+    
+                // Actualizar barra de progreso visualmente
+                setProgressBar(progressBar, progressBarContainer, currentProgress);
+    
+                if (currentProgress < 100) {
+                    // Continuar actualizando después de 1 segundo
+                    setTimeout(() => {
+                        updateProgressBar(habitoId, progressBar, progressBarContainer);
+                    }, 1000);
+                } else {
+                    // Progreso completado
+                    onProgressComplete(habitoId, progressBarContainer);
+                }
+            }
+    
+            function setProgressBar(progressBar, progressBarContainer, progress) {
+                progressBar.style.width = `${progress}%`;
+                progressBar.setAttribute('aria-valuenow', progress);
+                progressBar.textContent = `${Math.floor(progress)}%`;
+                progressBarContainer.classList.remove('d-none');
+            }
+    
+            function onProgressComplete(habitoId, progressBarContainer) {
+    const habitTitle = progressBarContainer.closest('.card-body').querySelector('.card-title').textContent;
+
+    // Mostrar mensaje de completado
+    iziToast.success({
+        title: '¡Completado!',
+        message: `Hábito completado: "${habitTitle}".`,
+        position: 'topRight'
+    });
+
+    // Emitir evento personalizado
+    const event = new CustomEvent('habitCompleted', { detail: { habitoId } });
+    window.dispatchEvent(event);
+
+    // Limpiar progreso del Local Storage
+    delete progressData[habitoId];
+    localStorage.setItem('habitProgress', JSON.stringify(progressData));
+
+    // Actualizar la tabla después de marcar el hábito como completado
+    actualizarTablaRegistros();  // Asegúrate de que esta función esté actualizando la tabla correctamente
+}
+
+            function crearRegistroEnServidor(habitoId) {
+                fetch('/iniciar_habito/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken(),
+                    },
+                    body: JSON.stringify({ habito_id: habitoId }),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error al guardar el registro en el servidor.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    iziToast.success({
+                        title: 'Registro guardado',
+                        message: 'El inicio del hábito se ha registrado exitosamente.',
+                        position: 'topRight',
+                    });
+                })
+                .catch(error => {
+                    iziToast.error({
+                        title: 'Error',
+                        message: 'No se pudo guardar el registro en el servidor.',
+                        position: 'topRight',
+                    });
+                    console.error(error);
+                });
+            }
+    
+            function getCSRFToken() {
+                const cookieValue = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                return cookieValue || '';
+            }
+        });
+    </script>
+    <!-- ---------------------------------------------------------- -->
+    <!-- Script Para Actualizar tabla-->
+    <!-- ---------------------------------------------------------- -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const habitoId = JSON.parse('{{ habito.id|escapejs }}');
+
+            const registrosTabla = document.querySelector('#tabla-registros tbody');
+    
+            // Función para actualizar la tabla cuando se marca un hábito como completado
+function actualizarTabla() {
+    fetch('/obtener_registros/30/')  // Actualiza con la URL correspondiente
+        .then(response => response.json())
+        .then(data => {
+            // Encuentra la tabla y actualiza las filas correspondientes
+            let tabla = document.getElementById("tabla_registros");
+            tabla.innerHTML = '';  // Limpiar la tabla antes de rellenarla
+
+            data.forEach(registro => {
+                let fila = document.createElement("tr");
+                let celdaFecha = document.createElement("td");
+                let celdaTiempo = document.createElement("td");
+                let celdaCompletado = document.createElement("td");
+
+                celdaFecha.textContent = registro.fecha_inicio;
+                celdaTiempo.textContent = registro.tiempo_transcurrido;
+                celdaCompletado.textContent = registro.completado ? 'Sí' : 'No';
+
+                fila.appendChild(celdaFecha);
+                fila.appendChild(celdaTiempo);
+                fila.appendChild(celdaCompletado);
+
+                tabla.appendChild(fila);
+            });
+        });
+}
+
+// Llamar a la función para completar el hábito
+document.getElementById("completar_habito").addEventListener("click", function() {
+    const habitoId = 30;  // El ID del hábito que se está completando
+
+    fetch(`/completar_habito/${habitoId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ habito_id: habitoId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('Hábito completado');
+            // Llamar a la función que actualiza la tabla
+            actualizarTabla();
+        } else {
+            console.error('Error al completar el hábito', data.message);
+        }
+    });
+});
+
+    
+            // Llamar una vez para inicializar
+            actualizarTablaRegistros();
+        });
+    </script>
+    
+
+
+    <!-- ---------------------------------------------------------- -->
+    <!-- Script Para validar el formulario con reglas personalizadas-->
+    <!-- ---------------------------------------------------------- -->
+    <script>
+        // Regla personalizada para solo letras
+        jQuery.validator.addMethod("letras", function(value, element) {            
+            return this.optional(element) || /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]*$/.test(value);
+        });
+        
+        // Regla personalizada para solo números
+        jQuery.validator.addMethod("numeros", function(value, element) {
+            return this.optional(element) || /[0-9]/.test(value);	 
+            }); 
+    </script>
+
+    <!-- ---------------------------------------------------------- -->
+    <!-- Script Para BOTONES horas y minutos -->
+    <!-- ---------------------------------------------------------- -->
+    <script>
+        // Función para agregar horas al campo de horas
+        function setHours(hours) {
+            const inputHours = document.getElementById('meta_horas');
+            inputHours.value = (parseInt(inputHours.value || '0', 10) + hours);
+        }
+
+        // Función para agregar minutos al campo de minutos
+        function setMinutes(minutes) {
+            const inputMinutes = document.getElementById('meta_minutos');
+            let currentMinutes = parseInt(inputMinutes.value || '0', 10);
+            let newMinutes = currentMinutes + minutes;
+
+            // Ajustar si excede 60 minutos
+            if (newMinutes >= 60) {
+                const extraHours = Math.floor(newMinutes / 60);
+                newMinutes %= 60;
+
+                // Actualizar horas automáticamente
+                setHours(extraHours);
+            }
+            inputMinutes.value = newMinutes;
+        }
+    </script>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+
+</html>

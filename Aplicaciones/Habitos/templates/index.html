@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Gestión de Hábitos</h1>
+    
+    <!-- Estadísticas -->
+    <div class="row text-center mb-4">
+        <div class="col-md-4">
+            <h5>Total de Hábitos</h5>
+            <p class="h2">{{ total_habitos }}</p>
+        </div>
+    </div>
+
+    <!-- Botón para agregar -->
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'crear_habito' %}" class="btn btn-primary">Nuevo Hábito</a>
+    </div>
+
+    <!-- Listado de Hábitos -->
+    <div class="row">
+        {% for habito in habits %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ habito.nombre }}</h5>
+                    <p class="card-text">{{ habito.descripcion }}</p>
+                    <p><strong>Tiempo:</strong> {{habito.meta_tiempo}} min</p>
+                    <p><strong>Prioridad:</strong> 
+                        <span class="badge 
+                            {% if habito.prioridad == 'Alta' %}bg-danger
+                            {% elif habito.prioridad == 'Media' %}bg-warning
+                            {% else %}bg-success{% endif %}">
+                            {{ habito.prioridad }}
+                        </span>
+                    </p>
+                    <div class="d-flex justify-content-between">
+                        <button 
+                        class="btn btn-success btn-sm start-btn" 
+                        data-id="{{ habito.pk }}" 
+                        data-meta-tiempo="{{ habito.meta_tiempo }}">
+                        Iniciar
+                        </button>
+                        <a href="{% url 'detalle_habito' pk=habito.pk %}" class="btn btn-info btn-sm">Detalles</a>
+                        <a href="{% url 'actualizar_habito' habito.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                        <form action="{% url 'eliminar_habito' habito.pk %}" method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar a este hábito?')">Eliminar</button>
+                        </form>
+                    </div>
+                    <!-- Indicador visual oculto -->
+                    <div id="progress-{{ habito.pk }}" class="progress mt-3 d-none">
+                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            0%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center">No hay hábitos registrados.</p>
+        {% endfor %}
+    </div>            
+</div>
+{% endblock %}
